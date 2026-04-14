@@ -57,6 +57,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
 struct Part {
     int x, y,shape,speed,angle;
+    bool turn;
 };
 
 struct Part part[4];
@@ -70,7 +71,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
     HPEN hPen, oldPen;
     RECT rect;
     static int ASIZE = 100, BSIZE = 200, CSIZE = 12, DSIZE=8,select = 0;
-    static bool isRclick=false;
+    static bool isRclick = false, isSpeed = false;
     GetClientRect(hWnd, &rect);
     switch (iMsg)
     {
@@ -86,22 +87,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
         for (int i = 0; i < 4; i++)
         {
             part[i].shape = 0;
-            part[i].speed = 60;
-            SetTimer(hWnd, i, part[i].speed, NULL);
+            part[i].speed = 1;
+            if (i % 2 == 0)
+                part[i].turn = true;
+            else
+                part[i].turn = false;
+            SetTimer(hWnd, i, 10, NULL);
         }
         break;
     case WM_TIMER:
-        switch (wParam) {
-        case 1:
-            part[1].angle++;
-            break;
-        case 2:
-            break;
-        case 3:
-            break;
-        case 4:
-            break;
+        for (int i = 0;i < 4;i++)
+        {
+            if (part[i].turn == true)
+                part[i].angle += part[i].speed;
+            else
+                part[i].angle -= part[i].speed;
         }
+        InvalidateRect(hWnd, NULL, TRUE);
         break;
     case WM_PAINT:
         hDC = BeginPaint(hWnd, &ps);
@@ -158,8 +160,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
         {
             if (part[i].shape == 0)
             {
-                int x = part[i].x + cos(part[i].angle);
-                int y = part[i].y + sin(part[i].angle);
+                int r = ASIZE;
+                double rad = part[i].angle * 3.141592 / 180.0;
+                int x = part[i].x + (int)(r * cos(rad));
+                int y = part[i].y + (int)(r * sin(rad));
+
                 Ellipse(hDC, x-DSIZE, y - DSIZE, x + DSIZE, y + DSIZE);
             }
             else if (part[i].shape == 1)
@@ -175,7 +180,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
         EndPaint(hWnd, &ps);
         break;
     case WM_LBUTTONDOWN:
-       
+        if (isSpeed == false)
+        {
+            part[select].speed++;
+            if (part[select].speed >= 6)
+            {
+                isSpeed = true;
+            }
+        }
+        else if (isSpeed = true)
+        {
+            part[select].speed--;
+            if (part[select].speed <= 1)
+                isSpeed = false;
+        }
         break;
     case WM_RBUTTONDOWN:
         if (isRclick == false)
@@ -237,6 +255,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
         {
             part[select].shape = 2;
             InvalidateRect(hWnd, NULL, TRUE);
+        }
+        else if (wParam == 'C')
+        {
+            if (part[select].turn == true)
+                part[select].turn = false;
+            else
+                part[select].turn = true;
         }
         break;
     case WM_DESTROY:
