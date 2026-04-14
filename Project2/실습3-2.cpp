@@ -190,7 +190,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
         {
             part[select].x = temp.x;
             part[select].y = temp.y;
-            isRclick = false;
+            isRclick = false; //test
         }
         InvalidateRect(hWnd, NULL, TRUE);
         break;
