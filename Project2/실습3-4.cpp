@@ -54,51 +54,39 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	return (int)Message.wParam;
 }
 
+int board[30][30];
+int px, py;
 
-struct Player {
-	int x, y;
-};
-
-struct Item {
-	int x, y, rgb;
-	COLORREF color;
-	bool first = false;
-};
-
-struct Tail {
-	int x, y;
-	COLORREF color;
-};
-
-struct Item item[100];
-struct Player p;
-struct Tail tail[100];
-int tailCount;
-int isCollision(int x, int y, int cell, struct Item item[])
+int stackType[900];
+int stackCount = 0;
+bool horizontal = false;
+void CheckAndClearLines()
 {
-
-	for (int i = 0; i < 100; i++)
+	for (int y = 0; y < 30; y++)
 	{
-		if (item[i].x == x && item[i].y == y)
-			return i;
-	}
-	for (int i = 0; i < tailCount; i++)
-	{
-		if (tail[i].x == x && tail[i].y == y)
-			return -2; // tail 구분용
-	}
-	return -1;
-}
+		int first = board[y][0];
 
+		if (first < 2 || first > 5)
+			continue;
 
-bool isOverlap1(int x, int y, struct Item item[], int count)
-{
-	for (int i = 0; i < count; i++)
-	{
-		if (item[i].x == x && item[i].y == y)
-			return true;
+		bool same = true;
+
+		for (int x = 1; x < 30; x++)
+		{
+			if (board[y][x] != first)
+			{
+				same = false;
+				break;
+			}
+		}
+
+		// 🔥 같은 색으로 꽉 찬 줄
+		if (same)
+		{
+			for (int x = 0; x < 30; x++)
+				board[y][x] = 0;
+		}
 	}
-	return false;
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
@@ -113,118 +101,95 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	width = rect.right;
 	height = rect.bottom;
 	cell = width / 30;
-	static int countItem, turn, px, py;
+	static int turn = 4, tailCount = 0;
 
 	switch (iMessage) {
 	case WM_CREATE:
-		countItem = 60;
-		turn = 4;
-		tailCount = 0;
-		p.x = rand() % 30 * cell;
-		p.y = 0;
-		px = p.x;
-		py = p.y;
-		for (int i = 0;i < 60;i++)
+		px = rand() % 30;
+		py = 0;
+		board[py][px] = 1;
+		for (int i = 0; i < 60; i++)
 		{
 			while (1)
 			{
 				int x = rand() % 30;
 				int y = rand() % 28 + 1;
 
-				if (isOverlap1(x, y, item, i))
-					continue;
-				item[i].rgb = rand() % 4;
-				if (item[i].rgb == 0)
+				if (board[y][x] == 0)   // 이 위치만 검사
 				{
-					item[i].color = RGB(255, 0, 0);
+					board[y][x] = 2 + rand() % 4;
+					break;  // 반드시 탈출
 				}
-				else if (item[i].rgb == 1)
-				{
-					item[i].color = RGB(0, 255, 0);
-				}
-				else if (item[i].rgb == 2)
-				{
-					item[i].color = RGB(0, 0, 255);
-				}
-				else if (item[i].rgb == 3)
-				{
-					item[i].color = RGB(255, 255, 102);
-				}
-				item[i].x = x * cell;
-				item[i].y = y * cell;
-				break;
 			}
 		}
-		SetTimer(hWnd, 1, 200, NULL);
+		SetTimer(hWnd, 1, 250, NULL);
 		break;
 	case WM_TIMER:
 	{
-		int dx = 0, dy = 0;
+		int nextX = px, nextY = py;
 
-		if (turn == 1) dx = -cell;
-		else if (turn == 2) dy = -cell;
-		else if (turn == 3) dx = cell;
-		else if (turn == 4) dy = cell;
+		if (turn == 1) nextX -= 1;
+		else if (turn == 2) nextY -= 1;
+		else if (turn == 3) nextX += 1;
+		else if (turn == 4) nextY += 1;
 
-		int nx = px + dx;
-		int ny = py + dy;
-
-		// 벽 체크
-		if (nx < 0 || nx >= cell * 30 || ny < 0 || ny >= cell * 30)
-			break;
-
-		// 충돌 체크
-		int idx = isCollision(nx, ny, cell, item);
-
-		if (idx != -1)
+		// 🔥 워프 먼저 체크
+		bool warped = false;
+		if (nextY > 29)
 		{
-			//꼬리 추가 (플레이어 아래쪽 기준)
-			tail[tailCount].x = nx;
-			tail[tailCount].y = ny;
-			tail[tailCount].color = item[idx].color;
-			tailCount++;
+			nextY = 0;
+			warped = true;
+		}
+		if (nextY < 0) nextY = 29;
+		if (nextX < 0) nextX = 0;
+		if (nextX > 29) nextX = 29;
 
-			// 아이템 제거 (화면 밖으로 보내기)
-			item[idx].x = -100;
-			item[idx].y = -100;
+		// 🔥 아이템 먹기 → 스택에 저장
+		if (board[nextY][nextX] >= 2 && board[nextY][nextX] <= 5)
+		{
+			stackType[stackCount++] = board[nextY][nextX];
+			board[nextY][nextX] = 0;
 		}
 
-		// 플레이어 이동
-		px = nx;
-		py = ny;
-		p.x = px;
-		p.y = py;
+		// 🔥 이동
+		board[py][px] = 0;
+		px = nextX;
+		py = nextY;
+		board[py][px] = 1;
 
-		bool hitBottom = false;
-
-		for (int i = 0; i < tailCount; i++)
+		// 🔥 워프 순간 → 스택을 바닥에 떨어뜨림
+		if (warped)
 		{
-			if (tail[i].y >= cell * 29)
+			if (!horizontal)
 			{
-				hitBottom = true;
-				break;
+				// 🔥 세로 상태 → 아래로 쌓기
+				for (int i = 0; i < stackCount; i++)
+				{
+					int y = 29 - i;
+					if (y < 0) break;
+
+					if (board[y][px] == 0)
+						board[y][px] = stackType[i];
+				}
 			}
+			else
+			{
+				// 🔥 가로 상태 → 오른쪽으로 쌓기 (바닥 기준)
+				for (int i = 0; i < stackCount; i++)
+				{
+					int x = px + i;
+					int y = 29;
+
+					if (x >= 30) break;
+
+					if (board[y][x] == 0)
+						board[y][x] = stackType[i];
+				}
+			}
+
+			stackCount = 0;
 		}
-
-		if (hitBottom)
-		{
-			// 👉 꼬리는 그대로 두고
-			// 👉 플레이어만 맨 위로 이동
-			py = 0;            // 맨 위
-
-			p.x = px;
-			p.y = py;
-
-			// 👉 꼬리는 더 이상 따라오지 않게 해야 함
-			// (중요: 아래 코드 제거 or 조건 처리)
-		}
-
-		if (idx == -2)
-		{
-			// 꼬리 충돌 → 이동 막기
-			break;
-		}
-
+		CheckAndClearLines();
 		InvalidateRect(hWnd, NULL, TRUE);
 		break;
 	}
@@ -237,33 +202,73 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 			MoveToEx(hDC, i * cell, 0, NULL);   // 시작점
 			LineTo(hDC, i * cell, cell * 30);        // 세로선
 		}
-
-		hBrush = CreateSolidBrush(RGB(224, 255, 255)); // 플레이어 그리기 
-		oldBrush = (HBRUSH)SelectObject(hDC, hBrush);
-		Ellipse(hDC, p.x, p.y, p.x + cell, p.y + cell);
-		SelectObject(hDC, oldBrush);
-		DeleteObject(hBrush);
-
-		for (int i = 0;i < countItem;i++)
+		for (int i = 0;i < 30;i++)
 		{
-			hBrush = CreateSolidBrush(item[i].color);
+			for (int j = 0;j < 30;j++)
+			{
+				if (board[i][j] == 1)
+				{
+					hBrush = CreateSolidBrush(RGB(173, 216, 221));
+					oldBrush = (HBRUSH)SelectObject(hDC, hBrush);
+					Ellipse(hDC, j * cell, i * cell, j * cell + cell, i * cell + cell);
+					SelectObject(hDC, oldBrush);
+					DeleteObject(hBrush);
+
+				}
+				else if (board[i][j] >= 2 && board[i][j] <= 5)
+				{
+					COLORREF color;
+					if (board[i][j] == 2) color = RGB(255, 99, 71);
+					else if (board[i][j] == 3) color = RGB(255, 165, 0);
+					else if (board[i][j] == 4) color = RGB(30, 144, 255);
+					else if (board[i][j] == 5) color = RGB(138, 43, 226);
+					hBrush = CreateSolidBrush(color);
+					oldBrush = (HBRUSH)SelectObject(hDC, hBrush);
+					Rectangle(hDC, j * cell, i * cell, j * cell + cell, i * cell + cell);
+					SelectObject(hDC, oldBrush);
+					DeleteObject(hBrush);
+
+				}
+			}
+		}
+		for (int i = 0; i < stackCount; i++)
+		{
+			int tx = px;
+			int ty = py;
+
+			if (!horizontal)
+			{
+				// 🔥 위로 쌓기
+				ty = py - (i + 1);
+			}
+			else
+			{
+				// 🔥 오른쪽으로 쌓기
+				tx = px + (i + 1);
+			}
+
+			// 화면 밖 방지
+			if (tx < 0 || tx >= 30 || ty < 0 || ty >= 30)
+				continue;
+
+			COLORREF color;
+			if (stackType[i] == 2) color = RGB(255, 99, 71);
+			else if (stackType[i] == 3) color = RGB(255, 165, 0);
+			else if (stackType[i] == 4) color = RGB(30, 144, 255);
+			else if (stackType[i] == 5) color = RGB(138, 43, 226);
+
+			hBrush = CreateSolidBrush(color);
 			oldBrush = (HBRUSH)SelectObject(hDC, hBrush);
-			Rectangle(hDC, item[i].x, item[i].y, item[i].x + cell, item[i].y + cell);
+
+			Rectangle(hDC,
+				tx * cell,
+				ty * cell,
+				tx * cell + cell,
+				ty * cell + cell);
+
 			SelectObject(hDC, oldBrush);
 			DeleteObject(hBrush);
 		}
-
-		for (int i = 0; i < tailCount; i++)
-		{
-			hBrush = CreateSolidBrush(tail[i].color);
-			oldBrush = (HBRUSH)SelectObject(hDC, hBrush);
-			Rectangle(hDC, tail[i].x, tail[i].y,
-				tail[i].x + cell, tail[i].y + cell);
-			SelectObject(hDC, oldBrush);
-			DeleteObject(hBrush);
-		}
-
-		EndPaint(hWnd, &ps);
 		break;
 	case WM_DESTROY:
 	{
@@ -280,22 +285,87 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		{
 			turn = 1;
 		}
-		else if (wParam == VK_RIGHT)
-		{
-			turn = 3;
-		}
 		else if (wParam == VK_UP)
 		{
 			turn = 2;
+		}
+		else if (wParam == VK_RIGHT)
+		{
+			turn = 3;
 		}
 		else if (wParam == VK_DOWN)
 		{
 			turn = 4;
 		}
+		else if (wParam == VK_RETURN)
+		{
+			horizontal = !horizontal; // 토글
+		}
+		else if (wParam == 'R')
+		{
+			KillTimer(hWnd, 1);
+
+			// 🔥 1. 보드 초기화
+			for (int y = 0; y < 30; y++)
+				for (int x = 0; x < 30; x++)
+					board[y][x] = 0;
+
+			// 🔥 2. 꼬리/스택 초기화
+			stackCount = 0;
+
+			// 🔥 3. 플레이어 재설정
+			px = rand() % 30;
+			py = 0;
+			board[py][px] = 1;
+
+			// 🔥 4. 아이템 재생성
+			for (int i = 0; i < 60; i++)
+			{
+				while (1)
+				{
+					int x = rand() % 30;
+					int y = rand() % 28 + 1;
+
+					if (board[y][x] == 0)
+					{
+						board[y][x] = 2 + rand() % 4;
+						break;
+					}
+				}
+			}
+
+			SetTimer(hWnd, 1, 250, NULL);
+		}
+		InvalidateRect(hWnd, NULL, TRUE);
 		break;
 	}
+	case WM_LBUTTONDOWN:
+	{
+		int x = LOWORD(lParam);
+		int y = HIWORD(lParam);
+
+		if (board[y / cell][x / cell] == 0)
+		{
+			board[y / cell][x / cell] = 2 + rand() % 4;
+		}
+		InvalidateRect(hWnd, NULL, TRUE);
+		break;
+	}
+	case WM_RBUTTONDOWN:
+	{
+		int x = LOWORD(lParam);
+		int y = HIWORD(lParam);
+
+		if (board[y / cell][x / cell] >= 2 && board[y / cell][x / cell] <= 5)
+		{
+			board[y / cell][x / cell] = 0;
+		}
+
+		InvalidateRect(hWnd, NULL, TRUE);
+		break;
 	}
 
+	}
 	return DefWindowProc(hWnd, iMessage, wParam, lParam);
 }
 
