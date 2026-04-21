@@ -124,7 +124,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	cell = width / 40;
 	static int speed = 250, turn = 1,obCount,Ax,Ay,jump=0;
 	static bool isA=false,jump1=false,jump2=false,jump3=false,jump4=false;
-
+	static int answer;
 	switch (iMessage) {
 	case WM_CREATE:
 		p.x = rand() % 40 * cell;
@@ -337,6 +337,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 			// ⭐ A 모드: 무조건 꼬리로
 			if (isA)
 			{
+				for (int i = 0;i < 20;i++)
+				{
+					f[i].moving1 = true;
+					f[i].moving2 = false;
+					f[i].move = -1;
+				}
 				if (tailCount < 20)
 				{
 					f[idx].moving1 = false;
@@ -409,7 +415,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 			ty = tempY;
 		}
 
-		for (int i = 0;i < 20;i++)
+		for (int i = 0;i < 20;i++) // 아이템 움직임
 		{
 			if (f[i].moving1 == true)
 			{
@@ -595,36 +601,42 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		{
 			if (tailCount > 0)
 			{
-				// 1. 첫 꼬리 가져오기
-				int first = tail[0];
-
-				// 2. 기존 플레이어 위치 저장
 				int oldPx = p.x;
 				int oldPy = p.y;
 
-				// 3. 플레이어 ← tail1
+				// 1. 첫 꼬리
+				int first = tail[0];
+
+				// 2. 플레이어를 A로 이동
 				p.x = f[first].x;
 				p.y = f[first].y;
 				p.RGB = f[first].RGB;
 
-				f[first].moving1 = false;
-				f[first].moving2 = true;
-				f[first].move = -1;
-				f[first].size = 0;
-
-				// 4. tail 배열 앞으로 당기기
+				// 3. 꼬리 좌표 한 칸씩 앞으로 (핵심)
 				for (int i = 0; i < tailCount - 1; i++)
 				{
-					tail[i] = tail[i + 1];
+					int cur = tail[i];
+					int next = tail[i + 1];
+
+					f[cur].x = f[next].x;
+					f[cur].y = f[next].y;
 				}
 
-				// 5. 기존 플레이어를 tail 맨 뒤로
-				int newTailIdx = first; // 재활용
-				tail[tailCount - 1] = newTailIdx;
+				// 4. 마지막 꼬리에 기존 플레이어 위치 넣기
+				int last = tail[tailCount - 1];
+				f[last].x = oldPx;
+				f[last].y = oldPy;
 
-				f[newTailIdx].x = oldPx;
-				f[newTailIdx].y = oldPy;
+				// 5. 꼬리 상태 강제 고정 (움직이는거 방지)qk
+				for (int i = 0; i < tailCount; i++)
+				{
+					int t = tail[i];
+					f[t].moving1 = false;
+					f[t].moving2 = true;
+					f[t].move = -1;
+				}
 			}
+
 
 			InvalidateRect(hWnd, NULL, TRUE);
 		}
@@ -727,23 +739,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
 		for (int i = 0; i < tailCount; i++)
 		{
-			int t = tail[i];
-			if (f[t].x == cx && f[t].y == cy) 
+			int idx = tail[i];
+			if (f[idx].x == cx && f[idx].y == cy) 
 			{
-			
-				f[i].moving1 = true;
-				f[i].moving2 = false;
-				f[i].move = rand() % 5;
-				f[i].size = 0;
+				for (int j = i; j < tailCount;j++)
+				{
+					int del = tail[j];
+					f[del].moving1 = true;
+					f[del].moving2 = false;
+					f[del].move = rand() % 5;
+					f[del].size = 0;
 
-				tailCount = 0;
-
+				}
+				tailCount = i;
 				break;
 			}
 		}
 		InvalidateRect(hWnd, NULL, TRUE);
 	}
-
 	return DefWindowProc(hWnd, iMessage, wParam, lParam);
 }
 

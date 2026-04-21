@@ -3,6 +3,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <math.h>
+#include "resource1.h"
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"WindowClass";
@@ -29,7 +30,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 	WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 	WndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
 	WndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-	WndClass.lpszMenuName = NULL;
+	WndClass.lpszMenuName = MAKEINTRESOURCE(IDR_MENU1);
 	WndClass.lpszClassName = lpszClass;
 	WndClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 
@@ -41,7 +42,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 		WS_OVERLAPPEDWINDOW,
 		0, 0,
 		winx, winy,
-		NULL, NULL,
+		NULL,NULL,
 		hInstance, NULL
 	);
 
@@ -59,6 +60,7 @@ struct Part {
 	int x, y, shape, speed, angle, mx, my,target;
 	double tx, ty;
 	bool turn, isShape = false,check=false;
+	COLORREF color;
 
 };
 
@@ -67,7 +69,8 @@ struct Part temp;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
-	HDC hDC;
+	HDC hDC,mDC;
+	HBITMAP hBitmap;
 	PAINTSTRUCT ps;
 	HBRUSH hBrush, oldBrush;
 	HPEN hPen, oldPen;
@@ -79,6 +82,76 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	GetClientRect(hWnd, &rect);
 	switch (iMsg)
 	{
+	case WM_COMMAND:
+	{
+		switch (LOWORD(wParam))
+		{
+		case ID_GAME_QUIT:
+			PostQuitMessage(0);
+			break;
+		case ID_SELECTION_1:
+			select = 0;
+			break;
+		case ID_SELECTION_2:
+			select = 1;
+			break;
+		case ID_SELECTION_3:
+			select = 2;
+			break;
+		case ID_SELECTION_4:
+			select = 3;
+			break;
+		case ID_GAME_START:
+			for (int i = 0; i < 4; i++)
+			{
+				part[i].shape = 0;
+				part[i].speed = 1;
+				if (i % 2 == 0)
+					part[i].turn = true;
+				else
+					part[i].turn = false;
+				SetTimer(hWnd, i, 10, NULL);
+			}
+			break;
+		case ID_GAME_STOP:
+			for (int i = 0; i < 4; i++)
+			{
+				part[i].speed = 0;
+				KillTimer(hWnd, i);
+			}
+			break;
+		case 40013:
+			part[select].speed = 1;
+			break;
+		case 40012:
+			part[select].speed = 2;
+			break;
+		case 40011:
+			part[select].speed = 3;
+			break;
+		case 40014:
+			part[select].color = RGB(255, 0, 0);
+			break;
+		case 40015:
+			part[select].color = RGB(0, 0, 255);
+			break;
+		case 40016:
+			part[select].color = RGB(0, 0, 0);
+			break;
+		case 40017:
+			part[select].shape = 0;
+			break;
+		case 40018:
+			part[select].shape = 1;
+			break;
+		case 40019:
+			part[select].shape = 2;
+			break;
+
+		}
+		break;
+	}
+
 	case WM_CREATE:
 		part[0].x = rect.right / 4;
 		part[0].y = rect.bottom / 4;
@@ -91,12 +164,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		for (int i = 0; i < 4; i++)
 		{
 			part[i].shape = 0;
-			part[i].speed = 1;
+			part[i].speed = 0;
+			part[i].color = RGB(0, 255, 0);
 			if (i % 2 == 0)
 				part[i].turn = true;
 			else
 				part[i].turn = false;
-			SetTimer(hWnd, i, 10, NULL);
+			//SetTimer(hWnd, i, 10, NULL);
 		}
 		for (int i = 0;i < 4;i++)
 		{
@@ -198,61 +272,66 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				}
 			}
 		}
-		InvalidateRect(hWnd, NULL, TRUE);
+		InvalidateRect(hWnd, NULL, FALSE);
 		break;
 	case WM_PAINT:
 		hDC = BeginPaint(hWnd, &ps);
+		mDC = CreateCompatibleDC(hDC);
+		hBitmap = CreateCompatibleBitmap(hDC, rect.right, rect.bottom);
+		SelectObject(mDC, (HBITMAP)hBitmap);
+		Rectangle(mDC, 0, 0, rect.right, rect.bottom);
 
 		hBrush = CreateSolidBrush(setcolor);
-		oldBrush = (HBRUSH)SelectObject(hDC, hBrush);
+		oldBrush = (HBRUSH)SelectObject(mDC, hBrush);
 		for (int i = 0; i < 4; i++) //4분면에 작은 빨간 원 그리기 
 		{
-			if (part[i].check == true) SetROP2(hDC, R2_MASKNOTPEN);
-			else SetROP2(hDC, R2_COPYPEN);
-			Ellipse(hDC, part[i].x - CSIZE, part[i].y - CSIZE, part[i].x + CSIZE, part[i].y + CSIZE);
+			if (part[i].check == true) SetROP2(mDC, R2_MASKNOTPEN);
+			else SetROP2(mDC, R2_COPYPEN);
+			Ellipse(mDC, part[i].x - CSIZE, part[i].y - CSIZE, part[i].x + CSIZE, part[i].y + CSIZE);
 		}
-		SelectObject(hDC, oldBrush);
+		SelectObject(mDC, oldBrush);
 		DeleteObject(hBrush);
 
 		hPen = CreatePen(PS_DOT, 1, RGB(0, 0, 0));
-		oldPen = (HPEN)SelectObject(hDC, hPen);
-		oldBrush = (HBRUSH)SelectObject(hDC, GetStockObject(NULL_BRUSH));
+		oldPen = (HPEN)SelectObject(mDC, hPen);
+		oldBrush = (HBRUSH)SelectObject(mDC, GetStockObject(NULL_BRUSH));
 		for (int i = 0; i < 4; i++) //  궤도 그리기 
 		{
-			if (part[i].check == true) SetROP2(hDC, R2_MASKNOTPEN);
-			else SetROP2(hDC, R2_COPYPEN);
+			if (part[i].check == true) SetROP2(mDC, R2_MASKNOTPEN);
+			else SetROP2(mDC, R2_COPYPEN);
 
 			if (part[i].shape == 0)
-				Ellipse(hDC, part[i].x - ASIZE, part[i].y - ASIZE, part[i].x + ASIZE, part[i].y + ASIZE);
+				Ellipse(mDC, part[i].x - ASIZE, part[i].y - ASIZE, part[i].x + ASIZE, part[i].y + ASIZE);
 			else if (part[i].shape == 1)
-				Rectangle(hDC, part[i].x - ASIZE, part[i].y - ASIZE, part[i].x + ASIZE, part[i].y + ASIZE);
+				Rectangle(mDC, part[i].x - ASIZE, part[i].y - ASIZE, part[i].x + ASIZE, part[i].y + ASIZE);
 			else if (part[i].shape == 2)
 			{
 				POINT point[6] = { {part[i].x,part[i].y - ASIZE},{part[i].x - (int)(ASIZE * sqrt(3) / 2),part[i].y + ASIZE / 2},{part[i].x + (int)(ASIZE * sqrt(3) / 2),part[i].y + ASIZE / 2} };
-				Polygon(hDC, point, 3);
+				Polygon(mDC, point, 3);
 			}
 		}
-		SelectObject(hDC, oldBrush);
-		SelectObject(hDC, oldPen);
+		SelectObject(mDC, oldBrush);
+		SelectObject(mDC, oldPen);
 		DeleteObject(hPen);
 
 		hPen = CreatePen(PS_SOLID, 3, RGB(255, 0, 0)); //셀렉된 네모 그리기 
-		oldPen = (HPEN)SelectObject(hDC, hPen);
-		oldBrush = (HBRUSH)SelectObject(hDC, GetStockObject(NULL_BRUSH));
-		if (part[select].check == true) SetROP2(hDC, R2_MASKNOTPEN);
-		else SetROP2(hDC, R2_COPYPEN);
-		Rectangle(hDC, part[select].x - BSIZE, part[select].y - BSIZE, part[select].x + BSIZE, part[select].y + BSIZE);
-		SelectObject(hDC, oldPen);
-		SelectObject(hDC, oldBrush);
+		oldPen = (HPEN)SelectObject(mDC, hPen);
+		oldBrush = (HBRUSH)SelectObject(mDC, GetStockObject(NULL_BRUSH));
+		if (part[select].check == true) SetROP2(mDC, R2_MASKNOTPEN);
+		else SetROP2(mDC, R2_COPYPEN);
+		Rectangle(mDC, part[select].x - BSIZE, part[select].y - BSIZE, part[select].x + BSIZE, part[select].y + BSIZE);
+		SelectObject(mDC, oldPen);
+		SelectObject(mDC, oldBrush);
 		DeleteObject(hPen);
+		DeleteObject(hBrush);
 
 
-		hBrush = CreateSolidBrush(RGB(0, 255, 0));
-		oldBrush = (HBRUSH)SelectObject(hDC, hBrush);
 		for (int i = 0; i < 4; i++) //돌아가는 도형 그리기 
 		{
-			if (part[i].check == true) SetROP2(hDC, R2_MASKNOTPEN);
-			else SetROP2(hDC, R2_COPYPEN);
+			hBrush = CreateSolidBrush(part[i].color);
+			oldBrush = (HBRUSH)SelectObject(mDC, hBrush);
+			if (part[i].check == true) SetROP2(mDC, R2_MASKNOTPEN);
+			else SetROP2(mDC, R2_COPYPEN);
 			if (part[i].shape == 0)
 			{
 				int r = ASIZE;
@@ -261,27 +340,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				int y = part[i].y + (int)(r * sin(rad));
 
 				if (part[i].isShape == false)
-					Ellipse(hDC, x - DSIZE, y - DSIZE, x + DSIZE, y + DSIZE);
+					Ellipse(mDC, x - DSIZE, y - DSIZE, x + DSIZE, y + DSIZE);
 				else if (part[i].isShape == true)
-					Rectangle(hDC, x - DSIZE, y - DSIZE, x + DSIZE, y + DSIZE);
+					Rectangle(mDC, x - DSIZE, y - DSIZE, x + DSIZE, y + DSIZE);
 			}
 			else if (part[i].shape == 1)
 			{
 				if (part[i].isShape == false)
-					Ellipse(hDC, part[i].mx - DSIZE, part[i].my - DSIZE, part[i].mx + DSIZE, part[i].my + DSIZE);
+					Ellipse(mDC, part[i].mx - DSIZE, part[i].my - DSIZE, part[i].mx + DSIZE, part[i].my + DSIZE);
 				else if (part[i].isShape == true)
-					Rectangle(hDC, part[i].mx - DSIZE, part[i].my - DSIZE, part[i].mx + DSIZE, part[i].my + DSIZE);
+					Rectangle(mDC, part[i].mx - DSIZE, part[i].my - DSIZE, part[i].mx + DSIZE, part[i].my + DSIZE);
 			}
 			else if (part[i].shape == 2)
 			{
 				if (part[i].isShape == false)
-					Ellipse(hDC, (int)part[i].tx - DSIZE, (int)part[i].ty - DSIZE, (int)part[i].tx + DSIZE, (int)part[i].ty + DSIZE);
+					Ellipse(mDC, (int)part[i].tx - DSIZE, (int)part[i].ty - DSIZE, (int)part[i].tx + DSIZE, (int)part[i].ty + DSIZE);
 				else if (part[i].isShape == true)
-					Rectangle(hDC, (int)part[i].tx - DSIZE, (int)part[i].ty - DSIZE, (int)part[i].tx + DSIZE, (int)part[i].ty + DSIZE);
+					Rectangle(mDC, (int)part[i].tx - DSIZE, (int)part[i].ty - DSIZE, (int)part[i].tx + DSIZE, (int)part[i].ty + DSIZE);
 			}
+			SelectObject(mDC, oldBrush);
+			DeleteObject(hBrush);
 		}
-		SelectObject(hDC, oldBrush);
-		DeleteObject(hBrush);
+		BitBlt(hDC, 0, 0, rect.right, rect.bottom, mDC, 0, 0, SRCCOPY);
+		DeleteDC(mDC);
+		DeleteObject(hBitmap);
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_LBUTTONDOWN:
@@ -315,7 +397,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			part[select].y = temp.y;
 			isRclick = false;
 		}
-		InvalidateRect(hWnd, NULL, TRUE);
 		break;
 	case WM_RBUTTONDBLCLK:
 		checkx = LOWORD(lParam);
@@ -343,32 +424,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		if (wParam == '1')
 		{
 			select = 0;
-			InvalidateRect(hWnd, NULL, TRUE);
 		}
 		else if (wParam == '2')
 		{
 			select = 1;
-			InvalidateRect(hWnd, NULL, TRUE);
 		}
 		else if (wParam == '3')
 		{
 			select = 2;
-			InvalidateRect(hWnd, NULL, TRUE);
 		}
 		else if (wParam == '4')
 		{
 			select = 3;
-			InvalidateRect(hWnd, NULL, TRUE);
 		}
 		else if (wParam == 'E')
 		{
 			part[select].shape = 0;
-			InvalidateRect(hWnd, NULL, TRUE);
 		}
 		else if (wParam == 'R')
 		{
 			part[select].shape = 1;
-			InvalidateRect(hWnd, NULL, TRUE);
 		}
 		else if (wParam == 'T')
 		{
@@ -376,7 +451,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			part[select].tx = part[select].x;
 			part[select].ty = part[select].y - ASIZE;
 			part[select].target = 1;
-			InvalidateRect(hWnd, NULL, TRUE);
+			InvalidateRect(hWnd, NULL, FALSE);
 		}
 		else if (wParam == 'C')
 		{
@@ -384,13 +459,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 				part[select].turn = false;
 			else
 				part[select].turn = true;
-			InvalidateRect(hWnd, NULL, TRUE);
+			InvalidateRect(hWnd, NULL, FALSE);
 		}
 		else if (wParam == 'M')
 		{
 			if (part[select].isShape == true) part[select].isShape = false;
 			else if (part[select].isShape == false) part[select].isShape = true;
-			InvalidateRect(hWnd, NULL, TRUE);
+			InvalidateRect(hWnd, NULL, FALSE);
 		}
 		else if (wParam == 'Q')
 		{
