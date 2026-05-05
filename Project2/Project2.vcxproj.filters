@@ -101,6 +101,15 @@
     <ClInclude Include="resource3.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="resource4.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="resource5.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="resource6.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc">

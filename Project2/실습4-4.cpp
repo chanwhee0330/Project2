@@ -100,7 +100,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 				{
 					row[i].block[j].x = j * 80;
 					row[i].block[j].y = i * 80;
-					row[i].block[j].state = 0; //0 ì•„ë¬´ê²ƒë„ ì•„ë‹˜, 1 í­íƒ„ 2 ì•„ì´í…œ 
+					row[i].block[j].state = 0; //0 ¾Æ¹«°Íµµ ¾Æ´Ô, 1 ÆøÅº 2 ¾ÆÀÌÅÛ 
 					row[i].block[j].isClick = false;
 					row[i].block[j].hint = false;
 				}
@@ -182,8 +182,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		{
 			int answer = MessageBox(
 				hWnd,
-				L"í”„ë¡œê·¸ë¨ì„ ì¢…ë£Œí•˜ì‹œê² ìŠµë‹ˆê¹Œ?",
-				L"ëë‚´ê¸° ì„ íƒ",
+				L"ÇÁ·Î±×·¥À» Á¾·áÇÏ½Ã°Ú½À´Ï±î?",
+				L"³¡³»±â ¼±ÅÃ",
 				MB_YESNO
 			);
 
@@ -245,7 +245,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 			{
 				row[i].block[j].x = j * 80;
 				row[i].block[j].y = i * 80;
-				row[i].block[j].state = 0; //0 ì•„ë¬´ê²ƒë„ ì•„ë‹˜, 1 í­íƒ„ 2 ì•„ì´í…œ 
+				row[i].block[j].state = 0; //0 ¾Æ¹«°Íµµ ¾Æ´Ô, 1 ÆøÅº 2 ¾ÆÀÌÅÛ 
 				row[i].block[j].isClick = false;
 				row[i].block[j].hint = false;
 			}
@@ -363,7 +363,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 					}
 					else if (row[i].block[j].state == 2)
 					{
-						HBRUSH yellowBrush = CreateSolidBrush(RGB(255, 255, 0)); // ë…¸ë€ìƒ‰
+						HBRUSH yellowBrush = CreateSolidBrush(RGB(255, 255, 0)); // ³ë¶õ»ö
 						HBRUSH oldBrush2 = (HBRUSH)SelectObject(mDC, yellowBrush);
 						POINT point[4] = { {row[i].block[j].x + 40,row[i].block[j].y},{row[i].block[j].x + 80,row[i].block[j].y + 40},{row[i].block[j].x + 40,row[i].block[j].y + 80},{row[i].block[j].x,row[i].block[j].y + 40} };
 						Polygon(mDC, point, 4);
@@ -583,10 +583,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
 		if (isDrag)
 		{
-			HPEN pen = CreatePen(PS_DOT, 1, RGB(0, 50, 0)); // ì ì„ 
+			HPEN pen = CreatePen(PS_DOT, 1, RGB(0, 50, 0)); // Á¡¼±
 			HPEN oldPen = (HPEN)SelectObject(mDC, pen);
 
-			HBRUSH oldBrush = (HBRUSH)SelectObject(mDC, GetStockObject(NULL_BRUSH)); // ë‚´ë¶€ ë¹„ìš°ê¸°
+			HBRUSH oldBrush = (HBRUSH)SelectObject(mDC, GetStockObject(NULL_BRUSH)); // ³»ºÎ ºñ¿ì±â
 
 			Rectangle(mDC, startX, startY, endX, endY);
 
