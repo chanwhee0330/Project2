@@ -21,6 +21,9 @@
     <ClCompile Include="실습5-2.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="실습5-3.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -34,6 +37,9 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\..\..\..\20251127_151640.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="..\..\..\..\..\..\20251116_164656.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
   </ItemGroup>
