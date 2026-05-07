@@ -60,8 +60,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	RECT rc;
 	static int startX, startY, endX, endY;
 	static int left, top, right, bottom, width, height, bmpX, bmpY, bmpW, bmpH;
-	static bool isDrag = false,mode=false,isF=false,isI=false,isH=false,isV=false;
-	static int size = 0,pCount=0;
+	static bool isDrag = false,mode=false,isF=false,isI=false,isH=false,isV=false,isM=false,isN=false;
+	static int size = 0,pCount=0,speed=1,move=0;
 	GetClientRect(hWnd,&rc);
 	switch (iMessage)
 	{
@@ -69,6 +69,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		{
 			srand((unsigned)time(NULL));
 			hBitmap = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_BITMAP1));
+			SetTimer(hWnd, 1, 10, NULL);
+			break;
+		}
+		case WM_TIMER:
+		{
+			if (wParam == 1)
+			{
+				startX=startX+speed*move;
+				endX= endX + speed * move;
+				if (endX >= rc.right)
+					speed = -1;
+				else if (startX < rc.left)
+					speed = 1;
+
+
+			}
+			InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		}
 		case WM_PAINT:
@@ -82,6 +99,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 			HBITMAP oldBmp = (HBITMAP)SelectObject(hMemDC, hBitmap);
 
 			StretchBlt(mDC, 0, 0, rc.right, rc.bottom,hMemDC, 0, 0, 200, 200, SRCCOPY);
+			if (isM)
+				move = 10;
+			else
+				move = 0;
 
 			if (isDrag)
 			{
@@ -238,6 +259,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 			{
 				isV = !isV;
 			}
+			else if (wParam == 'N')
+			{
+				isM = !isM;
+			}
 			else if (wParam == 'P')
 			{
 				if (pCount > 4)
@@ -247,6 +272,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 				photo[pCount].x = x;
 				photo[pCount].y = y;
 				pCount++;
+			}
+			else if(wParam=='M')
+			{
+				isM = !isM;
 			}
 			InvalidateRect(hWnd, NULL, FALSE);
 			break;
